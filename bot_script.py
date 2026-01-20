@@ -164,6 +164,18 @@ def scrape_produkt(produkt_key, produkt_info):
             print(f"      ✅ {gesamt_count} Händler: {', '.join(haendler_liste[:3])}")
         else:
             print(f"      ⏸️  Keine Händler gefunden")
+
+                # DEBUG: Was wurde gefunden?
+        print(f"      🔎 DEBUG: Gefundene Händler: {dict(haendler_details)}")
+        print(f"      🔎 DEBUG: HTML Länge: {len(html_text)} Zeichen")
+        
+        # Suche nach einem bekannten Händler im HTML
+        if "goldsilbershop.de" in html_text:
+            print(f"      ✅ goldsilbershop.de im HTML gefunden!")
+        else:
+            print(f"      ❌ goldsilbershop.de NICHT im HTML gefunden!")
+        
+        return gesamt_count, haendler_details, haendler_liste
         
         return gesamt_count, haendler_details, haendler_liste
         
@@ -173,6 +185,12 @@ def scrape_produkt(produkt_key, produkt_info):
 
 def sende_telegram(text):
     """Sendet Telegram-Nachricht."""
+    print(f"\n📤 TEST: Sende Telegram-Nachricht...")
+    print(f"📝 Nachricht (erste 200 Zeichen):")
+    print("-" * 50)
+    print(text[:200])
+    print("-" * 50)
+    
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     data = {
         'chat_id': TELEGRAM_CHAT_ID,
@@ -183,11 +201,18 @@ def sende_telegram(text):
     
     try:
         response = requests.post(url, json=data, timeout=10)
+        print(f"📡 Telegram API Response: {response.status_code}")
+        print(f"📄 Response JSON: {response.json()}")
+        
         if response.status_code == 200 and response.json().get('ok'):
+            print("✅ Telegram-Nachricht erfolgreich gesendet!")
             return True
-    except:
-        pass
-    return False
+        else:
+            print("❌ Telegram-API-Fehler!")
+            return False
+    except Exception as e:
+        print(f"❌ Exception beim Senden: {e}")
+        return False
 
 def erstelle_komplett_report(ergebnisse):
     """Erstellt einen kompletten stündlichen Report."""
