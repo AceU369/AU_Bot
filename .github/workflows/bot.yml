@@ -1,0 +1,52 @@
+name: Gold.de Verfügbarkeits Bot
+
+on:
+  schedule:
+    # Läuft alle 4 Stunden (um 00:00, 04:00, 08:00, 12:00, 16:00, 20:00 UTC)
+    - cron: '0 */4 * * *'
+    
+  # Erlaubt manuellen Start über GitHub Webinterface
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Grund für manuellen Start'
+        required: false
+        default: 'Manueller Test'
+
+jobs:
+  check-availability:
+    runs-on: ubuntu-latest  # Läuft auf Linux-Servern von GitHub
+    
+    steps:
+    # 1. Code aus Repository laden
+    - name: Code auschecken
+      uses: actions/checkout@v3
+      
+    # 2. Python installieren
+    - name: Python 3.9 einrichten
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    # 3. Benötigte Bibliothek installieren
+    - name: Abhängigkeiten installieren
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests
+        
+    # 4. Bot ausführen (mit Secrets als Umgebungsvariablen)
+    - name: Verfügbarkeits-Check durchführen
+      env:
+        TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: python bot_script.py
+      
+    # 5. Erfolgsmeldung (optional)
+    - name: Erfolg protokollieren
+      if: success()
+      run: echo "✅ Bot-Lauf erfolgreich abgeschlossen am $(date)"
+      
+    # 6. Fehlerbehandlung (optional)
+    - name: Fehler benachrichtigen
+      if: failure()
+      run: echo "❌ Bot-Lauf fehlgeschlagen" && exit 1
