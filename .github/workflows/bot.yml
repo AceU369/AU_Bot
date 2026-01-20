@@ -2,7 +2,7 @@ name: Gold.de Verfügbarkeits Bot
 
 on:
   schedule:
-    - cron: '0 */1 * * *'  # Jede Stunde
+    - cron: '0 * * * *'  # Jede Stunde zur vollen Stunde
   workflow_dispatch:
 
 jobs:
@@ -20,6 +20,13 @@ jobs:
         
     - name: Install dependencies
       run: pip install requests
+        
+    - name: DEBUG - Zeige Dateien
+      run: |
+        echo "=== VORHANDENE DATEIEN ==="
+        ls -la
+        echo "=== INHALT gold_bot_v2.py (erste 5 Zeilen) ==="
+        head -5 gold_bot_v2.py 2>/dev/null || echo "Datei gold_bot_v2.py existiert nicht!"
         
     - name: Run Verfügbarkeits-Check
       env:
