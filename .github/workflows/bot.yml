@@ -15,38 +15,44 @@ on:
 
 jobs:
   check-availability:
-    runs-on: ubuntu-latest  # Läuft auf Linux-Servern von GitHub
+    runs-on: ubuntu-latest
     
     steps:
     # 1. Code aus Repository laden
     - name: Code auschecken
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4  # Auf v4 updaten
       
-    # 2. Python installieren
-    - name: Python 3.9 einrichten
+    # 2. Python installieren (3.11 für bessere Performance)
+    - name: Python 3.11 einrichten
       uses: actions/setup-python@v4
       with:
-        python-version: '3.9'
+        python-version: '3.11'
         
-    # 3. Benötigte Bibliothek installieren
+    # 3. Debug: Secrets prüfen
+    - name: Secrets prüfen
+      run: |
+        echo "TELEGRAM_BOT_TOKEN vorhanden: ${{ secrets.TELEGRAM_BOT_TOKEN != '' }}"
+        echo "TELEGRAM_CHAT_ID vorhanden: ${{ secrets.TELEGRAM_CHAT_ID != '' }}"
+        
+    # 4. Benötigte Bibliothek installieren
     - name: Abhängigkeiten installieren
       run: |
         python -m pip install --upgrade pip
         pip install requests
         
-    # 4. Bot ausführen (mit Secrets als Umgebungsvariablen)
+    # 5. Bot ausführen (MIT KORREKTEN SECRET-NAMEN!)
     - name: Verfügbarkeits-Check durchführen
       env:
-        TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}  # ✅ KORRIGIERT!
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       run: python bot_script.py
       
-    # 5. Erfolgsmeldung (optional)
+    # 6. Erfolgsmeldung
     - name: Erfolg protokollieren
       if: success()
       run: echo "✅ Bot-Lauf erfolgreich abgeschlossen am $(date)"
       
-    # 6. Fehlerbehandlung (optional)
+    # 7. Fehlerbehandlung
     - name: Fehler benachrichtigen
       if: failure()
       run: echo "❌ Bot-Lauf fehlgeschlagen" && exit 1
