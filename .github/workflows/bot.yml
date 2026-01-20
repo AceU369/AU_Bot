@@ -2,7 +2,7 @@ name: Gold.de Verfügbarkeits Bot
 
 on:
   schedule:
-    - cron: '0 */1 * * *'
+    - cron: '0 */1 * * *'  # Jede Stunde
   workflow_dispatch:
 
 jobs:
@@ -21,7 +21,7 @@ jobs:
     - name: Install dependencies
       run: pip install requests
         
-- name: Run Verfügbarkeits-Check
+    - name: Run Verfügbarkeits-Check
       env:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
