@@ -1,7 +1,7 @@
 name: Gold.de Verfügbarkeits Bot
 
 on:
-  schedule:
+  schedule: 
     - cron: '0 * * * *'  # Jede Stunde zur vollen Stunde
   workflow_dispatch:
 
