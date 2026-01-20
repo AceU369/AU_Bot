@@ -3,7 +3,7 @@ name: Gold.de Verfügbarkeits Bot
 on:
   schedule:
     # Läuft alle 4 Stunden (um 00:00, 04:00, 08:00, 12:00, 16:00, 20:00 UTC)
-    - cron: '0 */4 * * *'
+    - cron: '0 * * * *'
     
   # Erlaubt manuellen Start über GitHub Webinterface
   workflow_dispatch:
