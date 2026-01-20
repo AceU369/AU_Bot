@@ -2,57 +2,29 @@ name: Gold.de Verfügbarkeits Bot
 
 on:
   schedule:
-    # Läuft alle 4 Stunden (um 00:00, 04:00, 08:00, 12:00, 16:00, 20:00 UTC)
+    # Jede Stunde zur vollen Stunde
     - cron: '0 * * * *'
     
-  # Erlaubt manuellen Start über GitHub Webinterface
   workflow_dispatch:
-    inputs:
-      reason:
-        description: 'Grund für manuellen Start'
-        required: false
-        default: 'Manueller Test'
 
 jobs:
   check-availability:
     runs-on: ubuntu-latest
     
     steps:
-    # 1. Code aus Repository laden
-    - name: Code auschecken
-      uses: actions/checkout@v4  # Auf v4 updaten
+    - name: Checkout code
+      uses: actions/checkout@v4
       
-    # 2. Python installieren (3.11 für bessere Performance)
-    - name: Python 3.11 einrichten
+    - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
         
-    # 3. Debug: Secrets prüfen
-    - name: Secrets prüfen
-      run: |
-        echo "TELEGRAM_BOT_TOKEN vorhanden: ${{ secrets.TELEGRAM_BOT_TOKEN != '' }}"
-        echo "TELEGRAM_CHAT_ID vorhanden: ${{ secrets.TELEGRAM_CHAT_ID != '' }}"
+    - name: Install dependencies
+      run: pip install requests
         
-    # 4. Benötigte Bibliothek installieren
-    - name: Abhängigkeiten installieren
-      run: |
-        python -m pip install --upgrade pip
-        pip install requests
-        
-    # 5. Bot ausführen (MIT KORREKTEN SECRET-NAMEN!)
-    - name: Verfügbarkeits-Check durchführen
+    - name: Run Verfügbarkeits-Check
       env:
-        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}  # ✅ KORRIGIERT!
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       run: python bot_script.py
-      
-    # 6. Erfolgsmeldung
-    - name: Erfolg protokollieren
-      if: success()
-      run: echo "✅ Bot-Lauf erfolgreich abgeschlossen am $(date)"
-      
-    # 7. Fehlerbehandlung
-    - name: Fehler benachrichtigen
-      if: failure()
-      run: echo "❌ Bot-Lauf fehlgeschlagen" && exit 1
