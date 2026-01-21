@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Gold.de Verfügbarkeits-Bot - OPTIMIERTE VERSION
-Mit korrekten URLs, besserer Händlererkennung und Zeichenlimit
+Gold.de Verfügbarkeits-Bot - ULTIMATIVE VERSION
+Mit Top-Links und verbesserter Händlererkennung
 """
 
 import requests
@@ -13,7 +13,7 @@ from time import sleep
 from collections import defaultdict
 
 print("=" * 60)
-print("🚀 Gold.de Verfügbarkeits-Bot - OPTIMIERT")
+print("🚀 Gold.de Verfügbarkeits-Bot - ULTIMATIVE VERSION")
 print(f"⏰ {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}")
 print("=" * 60)
 
@@ -25,7 +25,7 @@ if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
     print("❌ Telegram Secrets fehlen!")
     sys.exit(1)
 
-# === KORRIGIERTE PRODUKTLISTE MIT FUNKTIONIERENDEN URLs ===
+# === OPTIMIERTE PRODUKTLISTE ===
 MUENZEN = {
     # GOLDMÜNZEN 1oz
     "Krügerrand 1oz Gold": "https://www.gold.de/kaufen/goldmuenzen/kruegerrand/",
@@ -57,9 +57,16 @@ BARREN = {
     "100g Silberbarren": "https://www.gold.de/kaufen/silberbarren/100-gramm/",
 }
 
+# WICHTIGE PRODUKTE FÜR TOP-LINKS
+TOP_PRODUKTE = {
+    "1g Goldbarren": "https://www.gold.de/kaufen/goldbarren/1-gramm/",
+    "1oz Silberbarren": "https://www.gold.de/kaufen/silberbarren/1-unze/",
+    "Wiener Philharmoniker 1oz Silber": "https://www.gold.de/kaufen/silbermuenzen/philharmoniker/"
+}
+
 PRODUKTE = {**MUENZEN, **BARREN}
 
-# === ERWEITERTE HÄNDLERLISTE MIT MEHREREN SUCHMUSTERN ===
+# === EXTREM ERWEITERTE HÄNDLERLISTE ===
 HAENDLER_SUCHWOERTER = [
     # Domain-basierte Händler
     ('goldsilbershop.de', 'GoldSilberShop'),
@@ -71,30 +78,53 @@ HAENDLER_SUCHWOERTER = [
     ('esesg.de', 'ESG Edelmetall-Service'),
     ('philoro.de', 'Philoro'),
     ('aurargentum.de', 'Aurargentum'),
+    ('muenzeoesterreich.at', 'Münze Österreich'),
+    ('muenze-oesterreich.at', 'Münze Österreich'),
+    ('mp-edelmetalle.de', 'MP Edelmetalle'),
+    ('mpedelmetalle.de', 'MP Edelmetalle'),
+    ('bullionvault.com', 'BullionVault'),
+    ('aurinum.de', 'Aurinum'),
+    ('coinsinvest.com', 'CoinsInvest'),
+    ('coininvest.com', 'CoinInvest'),
+    ('silverbroker.de', 'Silverbroker.de'),
+    ('edelmetall-handel.de', 'Edelmetall-Handel'),
+    ('geld.de', 'Geld.de'),
+    ('geldhaus.de', 'Geldhaus'),
+    ('smaulgold.com', 'Smaulgold'),
     
     # Text-basierte Händlernamen (werden im HTML-Text gesucht)
     ('göbel', 'GÖBEL Münzen'),
     ('scheidestätte', 'Rheinische Scheidestätte'),
     ('bellmann', 'Bellmann Münzen'),
-    ('silverbroker', 'Silverbroker.de'),
     ('wasserthal', 'Wasserthal RareCoin'),
-    ('mp edelmetalle', 'MP Edelmetalle'),
-    ('muenze österreich', 'Münze Österreich'),
-    ('muenze-oesterreich', 'Münze Österreich'),
     ('rheinmetall', 'Rheinmetall'),
     ('scheideanstalt', 'Scheideanstalt'),
-    ('coinsinvest', 'CoinsInvest'),
-    ('bullionvault', 'BullionVault'),
-    ('aurinum', 'Aurinum'),
+    ('westfälische', 'Westfälische Scheideanstalt'),
+    ('bremer', 'Bremer Edelmetall'),
+    ('hanseatische', 'Hanseatische Scheideanstalt'),
+    ('deutsche', 'Deutsche Edelmetall'),
+    ('europäische', 'Europäische Edelmetall'),
+    ('österreichische', 'Österreichische Münze'),
+    ('liechtensteinische', 'Liechtensteinische Landesbank'),
+    ('zürcher', 'Zürcher Kantonalbank'),
+    ('ubs', 'UBS'),
+    ('degussa', 'Degussa'),  # doppelt für bessere Erkennung
+    ('aurum', 'Aurum'),
+    ('aurumina', 'Aurumina'),
+    
+    # Shop-Systeme von Gold.de
+    ('classic.gold.de', 'Gold.de Classic'),
+    ('cash.gold.de', 'Gold.de Cash'),
+    ('shop.gold.de', 'Gold.de Shop'),
 ]
 
 # User-Agent
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36 GoldBot/3.0'
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36 GoldBot/4.0'
 }
 
 def scrape_produkt(name, url):
-    """Scrapet ein Produkt mit MULTIPLER Händlersuche."""
+    """Scrapet ein Produkt mit AGGRESSIVER Händlersuche."""
     print(f"   🔍 {name}")
     
     try:
@@ -106,11 +136,11 @@ def scrape_produkt(name, url):
         
         text = response.text.lower()
         
-        # MEHRFACHE Suchmethoden für maximale Treffer
+        # EXTREM AGGRESSIVE Suche nach Händlern
         details = defaultdict(int)
         
-        # Methode 1: Suche in href-Links (Händler-URLs)
-        href_pattern = r'href=[\'"](https?://[^\'"]*)[\'"]'
+        # Methode 1: Suche in ALLEN href-Links
+        href_pattern = r'href=[\'"]([^\'"]*)[\'"]'
         links = re.findall(href_pattern, text)
         
         for link in links:
@@ -120,53 +150,58 @@ def scrape_produkt(name, url):
                     details[haendler_name] += 1
                     break
         
-        # Methode 2: Direkte Textsuche nach Händlernamen
+        # Methode 2: Suche im gesamten HTML-Text
         for suchwort, haendler_name in HAENDLER_SUCHWOERTER:
-            if suchwort in text:
-                # Zähle Vorkommen, aber gewichte Textfunde niedriger
-                count = text.count(suchwort)
-                details[haendler_name] += min(count, 3)  # Max 3 pro Suchwort
+            suchwort_lower = suchwort.lower()
+            if suchwort_lower in text:
+                # Zähle alle Vorkommen
+                count = text.count(suchwort_lower)
+                details[haendler_name] += min(count, 5)  # Max 5 pro Suchwort
         
-        # Methode 3: Suche nach bekannten Shop-Patterns
+        # Methode 3: Spezielle Suche nach Shop-Namen in DIVs/SPANs
         shop_patterns = [
-            ('shop.gold.de', 'Gold.de Shop'),
-            ('classic.gold.de', 'Gold.de Classic'),
-            ('cash.gold.de', 'Gold.de Cash'),
+            (r'<div[^>]*class=[^>]*shop[^>]*>([^<]*)</div>', 'div.shop'),
+            (r'<span[^>]*class=[^>]*händler[^>]*>([^<]*)</span>', 'span.händler'),
+            (r'<a[^>]*class=[^>]*dealer[^>]*>([^<]*)</a>', 'a.dealer'),
+            (r'<td[^>]*class=[^>]*seller[^>]*>([^<]*)</td>', 'td.seller'),
         ]
         
-        for pattern, haendler_name in shop_patterns:
-            if pattern in text:
-                details[haendler_name] += 1
+        for pattern, pattern_name in shop_patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            for match in matches:
+                match_lower = match.lower()
+                for _, haendler_name in HAENDLER_SUCHWOERTER:
+                    if any(word in match_lower for word in haendler_name.lower().split()):
+                        details[haendler_name] += 1
         
         total = sum(details.values())
         
         if total > 0:
-            # Sortiere und zeige Top 5
+            # Sortiere und zeige Top Händler
             top_haendler = sorted(details.items(), key=lambda x: x[1], reverse=True)
-            haendler_str = ", ".join([f"{h}" for h, _ in top_haendler[:5]])
-            print(f"      ✅ {len(details)} Händler: {haendler_str}")
+            haendler_liste = [f"{h}" for h, _ in top_haendler[:8]]
+            print(f"      ✅ {len(details)} Händler erkannt")
             
             # Detaillierte Debug-Ausgabe
-            if len(details) > 0:
-                print(f"      📋 Details: {dict(details)}")
+            if len(top_haendler) <= 10:
+                print(f"      📋 Alle: {dict(top_haendler)}")
+            else:
+                print(f"      📋 Top 10: {dict(top_haendler[:10])}")
         else:
             print(f"      ⏸️  Keine Händler erkannt")
             
-            # Debug: Test-Suche
-            test_woerter = ['göbel', 'scheidestätte', 'bellmann', 'heubach']
-            gefunden = [w for w in test_woerter if w in text]
-            if gefunden:
-                print(f"      🔎 Gefunden (nicht erkannt): {gefunden}")
+            # Debug: Zeige HTML-Ausschnitt
+            snippet = text[:500].replace('\n', ' ').replace('\r', ' ')
+            print(f"      🔎 HTML-Ausschnitt: {snippet[:200]}...")
         
         return total, dict(details)
         
     except Exception as e:
-        print(f"      ❌ Fehler: {str(e)[:50]}")
+        print(f"      ❌ Fehler: {e}")
         return None, {}
 
 def sende_telegram(text, max_length=3800):
     """Sendet Telegram-Nachricht mit Längenlimit."""
-    # Kürze Nachricht wenn zu lang
     if len(text) > max_length:
         print(f"⚠️  Nachricht zu lang ({len(text)} > {max_length}), kürze...")
         text = text[:max_length] + "\n\n... (Nachricht gekürzt)"
@@ -217,22 +252,22 @@ def erstelle_muenzen_report(ergebnisse):
         for h, c in e['details'].items():
             alle_haendler[h] += c
     
-    # Baue Nachricht (mit Zeichenlimit im Hinterkopf)
+    # Baue Nachricht
     nachricht = f"<b>🏛️ Aktueller Report - MÜNZEN</b>\n"
     nachricht += f"⏰ {datetime.now().strftime('%d.%m.%Y %H:%M')}\n"
     nachricht += f"💰 {len(erfolgreiche_muenzen)}/{len(MUENZEN)} Münzen gescannt\n"
     nachricht += f"🏪 {len(alle_haendler)} verschiedene Händler\n\n"
     
-    # TOP 3-5 Münzen (abhängig von Verfügbarkeit)
+    # TOP Münzen
     verfuegbare_muenzen = [e for e in erfolgreiche_muenzen if e['count'] and e['count'] > 0]
     
     if verfuegbare_muenzen:
         nachricht += "<b>🏆 TOP MÜNZEN:</b>\n"
-        for i, e in enumerate(verfuegbare_muenzen[:5], 1):
+        for i, e in enumerate(verfuegbare_muenzen[:6], 1):
             sterne = "★" * min(e['count'], 5)
             nachricht += f"{i}. <b>{e['name']}</b>: {e['count']} Händler {sterne}\n"
             
-            # Zeige Top 1-2 Händler
+            # Zeige Top 2 Händler
             if e['details']:
                 top_h = sorted(e['details'].items(), key=lambda x: x[1], reverse=True)[:2]
                 if top_h:
@@ -243,10 +278,10 @@ def erstelle_muenzen_report(ergebnisse):
     else:
         nachricht += "<i>⚠️ Derzeit keine Münzen bei Händlern verfügbar</i>\n\n"
     
-    # Top Händler (wenn vorhanden)
+    # Top Händler
     if alle_haendler:
         nachricht += "<b>👑 TOP HÄNDLER:</b>\n"
-        top_haendler = sorted(alle_haendler.items(), key=lambda x: x[1], reverse=True)[:5]
+        top_haendler = sorted(alle_haendler.items(), key=lambda x: x[1], reverse=True)[:8]
         for h, c in top_haendler:
             nachricht += f"• {h}: <b>{c}</b> Angebot"
             if c > 1:
@@ -267,14 +302,10 @@ def erstelle_muenzen_report(ergebnisse):
     
     nachricht += f"• Gesamt Angebote: <b>{gesamt_anzahl}</b>\n"
     
-    # Produkt-Links für Top-Münzen
-    if verfuegbare_muenzen:
-        nachricht += f"\n<b>🔗 Top-Münzen auf Gold.de:</b>\n"
-        for e in verfuegbare_muenzen[:3]:
-            url_key = e['name']
-            if url_key in MUENZEN:
-                url = MUENZEN[url_key]
-                nachricht += f"• {e['name']}:\n  {url}\n"
+    # TOP-PRODUKTE LINKS (gemäß deiner Vorgabe)
+    nachricht += f"\n<b>🔗 WICHTIGE PRODUKTE:</b>\n"
+    for produkt_name, url in TOP_PRODUKTE.items():
+        nachricht += f"• {produkt_name}:\n  {url}\n"
     
     nachricht += f"\n⏳ Nächster Münzen-Report in 1 Stunde\n"
     nachricht += f"#GoldMünzen #{datetime.now().strftime('%Y%m%d_%H')}"
@@ -300,7 +331,7 @@ def erstelle_barren_report(ergebnisse):
     nachricht += f"⏰ {datetime.now().strftime('%d.%m.%Y %H:%M')}\n"
     nachricht += f"📦 {len(erfolgreiche_barren)}/{len(BARREN)} Barren gescannt\n\n"
     
-    # Nach Kategorie gruppieren
+    # Nach Kategorie
     gold_barren = [e for e in erfolgreiche_barren if "Gold" in e['name']]
     silber_barren = [e for e in erfolgreiche_barren if "Silber" in e['name']]
     
@@ -360,7 +391,7 @@ def main():
             'count': count,
             'details': details
         })
-        sleep(1)  # Respektvolle Pause
+        sleep(1.5)  # Längere Pause für bessere Erkennung
     
     print("-" * 50)
     
@@ -368,11 +399,10 @@ def main():
     erfolgreich = len([e for e in ergebnisse if e['count'] is not None])
     print(f"📊 {erfolgreich}/{len(PRODUKTE)} Produkte erfolgreich gescannt")
     
-    # Bestimme Report-Zeitpunkt
+    # Report-Zeitpunkt
     current_hour = datetime.now().hour
     current_minute = datetime.now().minute
     
-    # Logik: Münzen immer, Barren nur zur vollen 3. Stunde
     send_muenzen = True
     send_barren = current_hour % 3 == 0 and current_minute < 10
     
@@ -396,9 +426,6 @@ def main():
             print(f"\n📤 Sende Barren-Report ({len(barren_nachricht)} Zeichen)...")
             if sende_telegram(barren_nachricht):
                 reports_gesendet += 1
-    
-    if reports_gesendet == 0 and (send_muenzen or send_barren):
-        print("\n⚠️  Keine Reports gesendet (entweder keine Daten oder Sendefehler)")
     
     print(f"\n✅ Bot beendet um {datetime.now().strftime('%H:%M:%S')}")
     print("=" * 60)
