@@ -1,7 +1,7 @@
 name: Gold.de Verfügbarkeits Bot
 
 on:
-  schedule: 
+  schedule:
     - cron: '0 * * * *'  # Jede Stunde zur vollen Stunde
   workflow_dispatch:
 
@@ -21,15 +21,9 @@ jobs:
     - name: Install dependencies
       run: pip install requests
         
-    - name: DEBUG - Zeige Dateien
-      run: |
-        echo "=== VORHANDENE DATEIEN ==="
-        ls -la
-        echo "=== INHALT gold_bot_v2.py (erste 5 Zeilen) ==="
-        head -5 gold_bot_v2.py 2>/dev/null || echo "Datei gold_bot_v2.py existiert nicht!"
-        
     - name: Run Verfügbarkeits-Check
       env:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        METALPRICEAPI_KEY: ${{ secrets.METALPRICEAPI_KEY }}  # 👈 WICHTIG: NEUE VARIABLE
       run: python gold_bot_v2.py
