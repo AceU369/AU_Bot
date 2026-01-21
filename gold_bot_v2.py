@@ -1,33 +1,32 @@
 #!/usr/bin/env python3
 """
-Gold.de Verfügbarkeits-Bot - ULTIMATIVE VERSION v2.0
-Mit Edelmetallpreisen, 3-Stunden-Rotation und intelligenter Lastverteilung
+Gold.de Verfügbarkeits-Bot - ULTIMATE VERSION v2.1
+Mit korrekten Edelmetallpreisen (MetalpriceAPI), 3-Stunden-Rotation
 """
 
 import requests
 import os
 import sys
 import re
-import json
 from datetime import datetime
 from time import sleep
 from collections import defaultdict
 
 print("=" * 60)
-print("🚀 Gold.de Verfügbarkeits-Bot - ULTIMATIVE VERSION v2.0")
+print("🚀 Gold.de Verfügbarkeits-Bot - ULTIMATE VERSION v2.1")
 print(f"⏰ {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}")
 print("=" * 60)
 
 # Telegram Secrets
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
+METALPRICEAPI_KEY = os.getenv('METALPRICEAPI_KEY')  # 👈 NEU: API-Key
 
 if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
     print("❌ Telegram Secrets fehlen!")
     sys.exit(1)
 
-# === KORRIGIERTE PRODUKTLISTE MIT FUNKTIONIERENDEN URLs ===
-# PRIORITÄT 1: Silbermünzen + 1g Gold (werden in jedem Zyklus gescannt)
+# === KORRIGIERTE PRODUKTLISTE ===
 PRIORITAET_1 = {
     "1g Goldbarren": "https://www.gold.de/kaufen/goldbarren/1-gramm/",
     "Krügerrand 1oz Silber": "https://www.gold.de/kaufen/silbermuenzen/kruegerrand-silber/",
@@ -36,7 +35,6 @@ PRIORITAET_1 = {
     "Arche Noah 10oz Silber": "https://www.gold.de/kaufen/silbermuenzen/arche-noah/",
 }
 
-# PRIORITÄT 2: Goldmünzen (werden im GOLDMÜNZEN-Zyklus gescannt)
 GOLDMUENZEN = {
     "Krügerrand 1oz Gold": "https://www.gold.de/kaufen/goldmuenzen/kruegerrand/",
     "Maple Leaf 1oz Gold": "https://www.gold.de/kaufen/goldmuenzen/maple-leaf/",
@@ -45,7 +43,6 @@ GOLDMUENZEN = {
     "Gold-Euro 1/2oz": "https://www.gold.de/kaufen/goldmuenzen/euro-goldmuenzen/",
 }
 
-# PRIORITÄT 3: Barren (werden im BARREN-Zyklus gescannt)
 BARREN = {
     "5g Goldbarren": "https://www.gold.de/kaufen/goldbarren/5-gramm/",
     "1oz Goldbarren": "https://www.gold.de/kaufen/goldbarren/1-unze/",
@@ -54,7 +51,6 @@ BARREN = {
     "100g Silberbarren": "https://www.gold.de/kaufen/silberbarren/100-gramm/",
 }
 
-# WICHTIGE PRODUKTE FÜR TOP-LINKS
 TOP_PRODUKTE = {
     "1g Goldbarren": "https://www.gold.de/kaufen/goldbarren/1-gramm/",
     "1oz Silberbarren": "https://www.gold.de/kaufen/silberbarren/1-oz/",
@@ -63,7 +59,6 @@ TOP_PRODUKTE = {
 
 # === ERWEITERTE HÄNDLERLISTE ===
 HAENDLER_SUCHWOERTER = [
-    # Domain-basierte Händler
     ('goldsilbershop.de', 'GoldSilberShop'),
     ('anlagegold24.de', 'Anlagegold24'),
     ('stonexbullion.com', 'StoneX Bullion'),
@@ -79,8 +74,6 @@ HAENDLER_SUCHWOERTER = [
     ('aurinum.de', 'Aurinum'),
     ('coinsinvest.com', 'CoinsInvest'),
     ('silverbroker.de', 'Silverbroker.de'),
-    
-    # Text-basierte Händlernamen
     ('göbel', 'GÖBEL Münzen'),
     ('scheidestätte', 'Rheinische Scheidestätte'),
     ('bellmann', 'Bellmann Münzen'),
@@ -88,41 +81,60 @@ HAENDLER_SUCHWOERTER = [
     ('deutsche edelmetall', 'Deutsche Edelmetall'),
     ('europäische edelmetall', 'Europäische Edelmetall'),
     ('aurum', 'Aurum'),
-    
-    # Shop-Systeme
     ('classic.gold.de', 'Gold.de Classic'),
     ('cash.gold.de', 'Gold.de Cash'),
 ]
 
-# User-Agent
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36 GoldBot/4.0'
 }
 
-# API für Edelmetallpreise
-METAL_PRICE_API = "https://api.frankfurter.app/latest?from=USD&to=EUR"
-
 def get_metal_prices():
-    """Holt aktuelle Gold- und Silberpreise von einer API."""
+    """Holt aktuelle Gold- und Silberpreise von MetalpriceAPI."""
     print("💰 Hole aktuelle Edelmetallpreise...")
     
+    if not METALPRICEAPI_KEY:
+        print("⚠️  METALPRICEAPI_KEY nicht gesetzt! Verwende Fallback-Preise.")
+        return get_fallback_prices()
+    
     try:
-        # Goldpreis in USD pro Unze (Standard)
-        gold_response = requests.get("https://api.frankfurter.app/latest?from=XAU&to=EUR", timeout=10)
+        # MetalpriceAPI erwartet: 1 Unze Gold (XAU) in EUR umgerechnet
+        # Die API gibt zurück: wie viel EUR für 1 Unze Gold
+        gold_url = f"https://api.metalpriceapi.com/v1/latest?api_key={METALPRICEAPI_KEY}&base=XAU&currencies=EUR"
+        silver_url = f"https://api.metalpriceapi.com/v1/latest?api_key={METALPRICEAPI_KEY}&base=XAG&currencies=EUR"
         
-        # Silberpreis in USD pro Unze (Standard)
-        silver_response = requests.get("https://api.frankfurter.app/latest?from=XAG&to=EUR", timeout=10)
+        gold_response = requests.get(gold_url, timeout=15)
+        silver_response = requests.get(silver_url, timeout=15)
+        
+        print(f"📡 Gold API Status: {gold_response.status_code}")
+        print(f"📡 Silber API Status: {silver_response.status_code}")
         
         if gold_response.status_code == 200 and silver_response.status_code == 200:
             gold_data = gold_response.json()
             silver_data = silver_response.json()
             
-            # Umrechnungen
-            gold_price_eur_per_oz = gold_data['rates']['EUR']
-            silver_price_eur_per_oz = silver_data['rates']['EUR']
+            print(f"📊 Gold API Response: {gold_data}")
+            print(f"📊 Silber API Response: {silver_data}")
+            
+            # MetalpriceAPI gibt den Wert von 1 Unze Metall in EUR zurück
+            # Beispiel: {"success":true,"timestamp":1737446400,"date":"2025-01-21","base":"XAU","rates":{"EUR":0.00058}}
+            # Das bedeutet: 1 EUR = 0.00058 Unzen Gold → 1 Unze Gold = 1 / 0.00058 = ~1724 EUR
+            
+            if 'rates' in gold_data and 'EUR' in gold_data['rates']:
+                gold_rate = gold_data['rates']['EUR']
+                gold_price_eur_per_oz = 1 / gold_rate if gold_rate > 0 else 2100
+            else:
+                print("❌ Gold-Rate nicht in API-Response gefunden")
+                gold_price_eur_per_oz = 2100
+            
+            if 'rates' in silver_data and 'EUR' in silver_data['rates']:
+                silver_rate = silver_data['rates']['EUR']
+                silver_price_eur_per_oz = 1 / silver_rate if silver_rate > 0 else 28
+            else:
+                print("❌ Silber-Rate nicht in API-Response gefunden")
+                silver_price_eur_per_oz = 28
             
             # Umrechnung in verschiedene Einheiten
-            # 1 Unze = 31.1034768 Gramm
             OUNCE_TO_GRAM = 31.1034768
             
             prices = {
@@ -135,20 +147,32 @@ def get_metal_prices():
                     'per_gram': silver_price_eur_per_oz / OUNCE_TO_GRAM,
                     'per_ounce': silver_price_eur_per_oz,
                     'per_kilo': (silver_price_eur_per_oz / OUNCE_TO_GRAM) * 1000
-                }
+                },
+                'timestamp': datetime.now().strftime('%H:%M'),
+                'source': 'MetalpriceAPI'
             }
             
-            print(f"✅ Gold: {prices['gold']['per_gram']:.2f} €/g")
-            print(f"✅ Silber: {prices['silver']['per_gram']:.2f} €/g")
+            print(f"✅ Gold: {prices['gold']['per_gram']:.2f} €/g (1oz = {prices['gold']['per_ounce']:.2f}€)")
+            print(f"✅ Silber: {prices['silver']['per_gram']:.2f} €/g (1oz = {prices['silver']['per_ounce']:.2f}€)")
             return prices
             
     except Exception as e:
         print(f"❌ Fehler beim Abrufen der Edelmetallpreise: {e}")
+        import traceback
+        traceback.print_exc()
     
-    # Fallback-Preise falls API nicht verfügbar
+    # Fallback falls API nicht verfügbar
+    return get_fallback_prices()
+
+def get_fallback_prices():
+    """Fallback-Preise für den Fall, dass die API nicht verfügbar ist."""
+    print("⚠️  Verwende Fallback-Preise...")
+    # Realistischere Fallback-Preise (Januar 2025)
     return {
-        'gold': {'per_gram': 65.50, 'per_ounce': 2037.50, 'per_kilo': 65500.00},
-        'silver': {'per_gram': 0.85, 'per_ounce': 26.45, 'per_kilo': 850.00}
+        'gold': {'per_gram': 67.80, 'per_ounce': 2108.50, 'per_kilo': 67800.00},
+        'silver': {'per_gram': 0.92, 'per_ounce': 28.62, 'per_kilo': 920.00},
+        'timestamp': datetime.now().strftime('%H:%M'),
+        'source': 'Fallback (manuell)'
     }
 
 def scrape_produkt(name, url):
@@ -235,9 +259,9 @@ def bestimme_scan_gruppe():
     current_hour = datetime.now().hour
     
     # 3-Stunden-Rotation:
-    # Stunde % 3 == 0: PRIORITÄT 1 (Silbermünzen + 1g Gold) + GOLDMÜNZEN
-    # Stunde % 3 == 1: PRIORITÄT 1 (Silbermünzen + 1g Gold) + BARREN
-    # Stunde % 3 == 2: NUR PRIORITÄT 1 (Silbermünzen + 1g Gold) - Ruhephase
+    # Stunde % 3 == 0: PRIORITÄT 1 + GOLDMÜNZEN
+    # Stunde % 3 == 1: PRIORITÄT 1 + BARREN
+    # Stunde % 3 == 2: NUR PRIORITÄT 1
     
     if current_hour % 3 == 0:
         return "GOLDMÜNZEN", {**PRIORITAET_1, **GOLDMUENZEN}
@@ -251,37 +275,36 @@ def erstelle_report(ergebnisse, gruppe, metal_prices):
     if not ergebnisse:
         return f"<b>📊 Aktueller Report - {gruppe}</b>\n⚠️ Keine Daten verfügbar"
     
-    # Filtere erfolgreiche Scans
     erfolgreiche = [e for e in ergebnisse if e['count'] is not None]
     erfolgreiche.sort(key=lambda x: x['count'] or 0, reverse=True)
     
     if not erfolgreiche:
         return f"<b>📊 Aktueller Report - {gruppe}</b>\n⚠️ Alle Scans fehlgeschlagen"
     
-    # Zähle Händler
     alle_haendler = defaultdict(int)
     for e in erfolgreiche:
         for h, c in e['details'].items():
             alle_haendler[h] += c
     
-    # Baue Nachricht mit Edelmetallpreisen
+    # Nachricht mit Preisen
     nachricht = f"<b>📊 AKTUELLER REPORT - {gruppe}</b>\n"
-    nachricht += f"⏰ {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n"
+    nachricht += f"⏰ {datetime.now().strftime('%d.%m.%Y %H:%M')}\n"
+    nachricht += f"💎 Preise ({metal_prices['source']}, {metal_prices['timestamp']}):\n\n"
     
-    # Edelmetallpreise
+    # Formatierte Edelmetallpreise
     nachricht += "<b>💰 AKTUELLE EDELMETALLPREISE:</b>\n"
     nachricht += f"<b>GOLD:</b> {metal_prices['gold']['per_gram']:.2f} €/g | "
     nachricht += f"{metal_prices['gold']['per_ounce']:.2f} €/oz | "
     nachricht += f"{metal_prices['gold']['per_kilo']:,.0f} €/kg\n"
     
-    nachricht += f"<b>SILBER:</b> {metal_prices['silver']['per_gram']:.2f} €/g | "
+    nachricht += f"<b>SILBER:</b> {metal_prices['silver']['per_gram']:.3f} €/g | "
     nachricht += f"{metal_prices['silver']['per_ounce']:.2f} €/oz | "
     nachricht += f"{metal_prices['silver']['per_kilo']:,.0f} €/kg\n\n"
     
     nachricht += f"📈 {len(erfolgreiche)}/{len(ergebnisse)} Produkte gescannt\n"
     nachricht += f"🏪 {len(alle_haendler)} verschiedene Händler\n\n"
     
-    # TOP Produkte (max 6)
+    # TOP Produkte
     verfuegbare = [e for e in erfolgreiche if e['count'] and e['count'] > 0]
     
     if verfuegbare:
@@ -323,7 +346,7 @@ def erstelle_report(ergebnisse, gruppe, metal_prices):
     
     nachricht += f"• Gesamt Angebote: <b>{gesamt_anzahl}</b>\n"
     
-    # Wichtige Produkte (nur wenn in der aktuellen Gruppe)
+    # Wichtige Produkte
     nachricht += f"\n<b>🔗 WICHTIGE PRODUKTE:</b>\n"
     for produkt_name, url in TOP_PRODUKTE.items():
         if produkt_name in [e['name'] for e in ergebnisse]:
@@ -333,11 +356,7 @@ def erstelle_report(ergebnisse, gruppe, metal_prices):
     current_hour = datetime.now().hour
     naechster_zyklus = (current_hour + 1) % 3
     
-    zyklus_namen = {
-        0: "GOLDMÜNZEN",
-        1: "BARREN", 
-        2: "PRIORITÄT 1"
-    }
+    zyklus_namen = {0: "GOLDMÜNZEN", 1: "BARREN", 2: "PRIORITÄT 1"}
     
     nachricht += f"\n⏳ Nächster Scan: {zyklus_namen[naechster_zyklus]} (in 1 Stunde)\n"
     nachricht += f"🔄 3-Stunden-Rotation aktiv\n"
@@ -367,11 +386,10 @@ def main():
             'count': count,
             'details': details
         })
-        sleep(2)  # Respektvolle Pause zwischen Requests
+        sleep(2)
     
     print("-" * 50)
     
-    # Statistik
     erfolgreich = len([e for e in ergebnisse if e['count'] is not None])
     print(f"📊 {erfolgreich}/{len(ergebnisse)} Produkte erfolgreich gescannt")
     
