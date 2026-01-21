@@ -98,8 +98,7 @@ def get_metal_prices():
         return get_fallback_prices()
     
     try:
-        # MetalpriceAPI erwartet: 1 Unze Gold (XAU) in EUR umgerechnet
-        # Die API gibt zurück: wie viel EUR für 1 Unze Gold
+        # MetalpriceAPI: Gibt direkt den Preis für 1 Unze in EUR zurück
         gold_url = f"https://api.metalpriceapi.com/v1/latest?api_key={METALPRICEAPI_KEY}&base=XAU&currencies=EUR"
         silver_url = f"https://api.metalpriceapi.com/v1/latest?api_key={METALPRICEAPI_KEY}&base=XAG&currencies=EUR"
         
@@ -116,22 +115,18 @@ def get_metal_prices():
             print(f"📊 Gold API Response: {gold_data}")
             print(f"📊 Silber API Response: {silver_data}")
             
-            # MetalpriceAPI gibt den Wert von 1 Unze Metall in EUR zurück
-            # Beispiel: {"success":true,"timestamp":1737446400,"date":"2025-01-21","base":"XAU","rates":{"EUR":0.00058}}
-            # Das bedeutet: 1 EUR = 0.00058 Unzen Gold → 1 Unze Gold = 1 / 0.00058 = ~1724 EUR
-            
+            # KORREKTUR: Die API gibt bereits EUR-Preis pro Unze zurück!
+            # "EUR": 4011.65 bedeutet: 1 Unze Gold = 4011.65 EUR
             if 'rates' in gold_data and 'EUR' in gold_data['rates']:
-                gold_rate = gold_data['rates']['EUR']
-                gold_price_eur_per_oz = 1 / gold_rate if gold_rate > 0 else 2100
+                gold_price_eur_per_oz = gold_data['rates']['EUR']
             else:
-                print("❌ Gold-Rate nicht in API-Response gefunden")
+                print("❌ Gold-Rate nicht gefunden")
                 gold_price_eur_per_oz = 2100
             
             if 'rates' in silver_data and 'EUR' in silver_data['rates']:
-                silver_rate = silver_data['rates']['EUR']
-                silver_price_eur_per_oz = 1 / silver_rate if silver_rate > 0 else 28
+                silver_price_eur_per_oz = silver_data['rates']['EUR']
             else:
-                print("❌ Silber-Rate nicht in API-Response gefunden")
+                print("❌ Silber-Rate nicht gefunden")
                 silver_price_eur_per_oz = 28
             
             # Umrechnung in verschiedene Einheiten
@@ -153,7 +148,7 @@ def get_metal_prices():
             }
             
             print(f"✅ Gold: {prices['gold']['per_gram']:.2f} €/g (1oz = {prices['gold']['per_ounce']:.2f}€)")
-            print(f"✅ Silber: {prices['silver']['per_gram']:.2f} €/g (1oz = {prices['silver']['per_ounce']:.2f}€)")
+            print(f"✅ Silber: {prices['silver']['per_gram']:.3f} €/g (1oz = {prices['silver']['per_ounce']:.2f}€)")
             return prices
             
     except Exception as e:
