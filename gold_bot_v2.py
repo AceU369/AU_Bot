@@ -171,7 +171,7 @@ def get_fallback_prices():
     }
 
 def scrape_produkt(name, url):
-    """Scrapet ein Produkt mit erweiterter Händlersuche."""
+    """Scrapet ein Produkt mit PRÄZISER Händlererkennung."""
     print(f"   🔍 {name}")
     
     try:
@@ -183,33 +183,61 @@ def scrape_produkt(name, url):
         
         text = response.text.lower()
         
+        # NEUE METHODE: Suche speziell in Händler-Listings
         details = defaultdict(int)
+        gefundene_haendler = set()  # Set für eindeutige Händler
         
-        # Methode 1: Suche in href-Links
-        href_pattern = r'href=[\'"](https?://[^\'"]*)[\'"]'
-        links = re.findall(href_pattern, text)
+        # Methode 1: Suche nach Händler-Links im HTML
+        # Typische Struktur auf Gold.de: <a href="https://www.händler.de">Händlername</a>
+        haendler_patterns = [
+            r'<a[^>]*href=["\'][^"\']*goldsilbershop[^"\']*["\'][^>]*>([^<]+)</a>',
+            r'<a[^>]*href=["\'][^"\']*anlagegold24[^"\']*["\'][^>]*>([^<]+)</a>',
+            r'<a[^>]*href=["\'][^"\']*proaurum[^"\']*["\'][^>]*>([^<]+)</a>',
+            r'<a[^>]*href=["\'][^"\']*degussa[^"\']*["\'][^>]*>([^<]+)</a>',
+            r'<a[^>]*href=["\'][^"\']*heubach[^"\']*["\'][^>]*>([^<]+)</a>',
+            r'<a[^>]*href=["\'][^"\']*muenzeoesterreich[^"\']*["\'][^>]*>([^<]+)</a>',
+        ]
         
-        for link in links:
-            link_lower = link.lower()
-            for domain, haendler_name in HAENDLER_SUCHWOERTER:
-                if domain in link_lower:
-                    details[haendler_name] += 1
-                    break
+        for pattern in haendler_patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            for match in matches:
+                # Finde den korrekten Händlernamen für diesen Match
+                for domain, haendler_name in HAENDLER_SUCHWOERTER:
+                    if domain.replace('.', r'\.') in pattern:
+                        gefundene_haendler.add(haendler_name)
+                        break
         
-        # Methode 2: Direkte Textsuche
-        for suchwort, haendler_name in HAENDLER_SUCHWOERTER:
-            if suchwort in text:
-                count = text.count(suchwort)
-                details[haendler_name] += min(count, 3)
+        # Methode 2: Suche nach spezifischen Händler-DIVs (falls Methode 1 nichts findet)
+        if not gefundene_haendler:
+            for suchwort, haendler_name in HAENDLER_SUCHWOERTER:
+                # Suche nach Händlernamen in typischen Listing-Strukturen
+                listing_pattern = rf'<div[^>]*class=["\'][^"\']*shop[^"\']*["\'][^>]*>.*?{re.escape(suchwort)}.*?</div>'
+                if re.search(listing_pattern, text, re.IGNORECASE | re.DOTALL):
+                    gefundene_haendler.add(haendler_name)
         
-        total = sum(details.values())
+        # Konvertiere Set zu Dictionary mit korrekter Zählung (1 pro Händler)
+        for haendler in gefundene_haendler:
+            details[haendler] = 1  # Jeder Händler zählt nur einmal!
+        
+        total = len(gefundene_haendler)  # Anzahl UNTERSCHIEDLICHER Händler
         
         if total > 0:
-            top_haendler = sorted(details.items(), key=lambda x: x[1], reverse=True)[:5]
-            haendler_str = ", ".join([f"{h}" for h, _ in top_haendler])
-            print(f"      ✅ {len(details)} Händler: {haendler_str}")
+            haendler_liste = list(gefundene_haendler)
+            print(f"      ✅ {total} Händler gefunden: {', '.join(haendler_liste[:3])}")
+            
+            # Debug: Zeige genaue Funde
+            if len(gefundene_haendler) <= 5:
+                print(f"      📋 Gefundene Händler: {haendler_liste}")
         else:
             print(f"      ⏸️  Keine Händler erkannt")
+            
+            # Debug: Einfache Suche als Fallback
+            einfache_treffer = []
+            for suchwort, haendler_name in HAENDLER_SUCHWOERTER[:10]:  # Nur erste 10 testen
+                if suchwort in text:
+                    einfache_treffer.append(haendler_name)
+            if einfache_treffer:
+                print(f"      🔎 Einfache Suche fand: {einfache_treffer}")
         
         return total, dict(details)
         
